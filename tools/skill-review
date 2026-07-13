@@ -1,0 +1,110 @@
+#!/usr/bin/env python3
+"""skill-review — checks each skill under skills/*:
+
+1. Every permission in permissions.yml is cited (by literal name) in the
+   skill's SKILL.md body.
+2. Phase headings (## Phase N) are numbered contiguously from 0.
+3. Phase 0 is present.
+
+Stdlib only, no network, no third-party imports.
+
+# ponytail: "cited" means the permission string appears verbatim in the
+# SKILL.md body. A future version could require a nearby explanation
+# sentence; today's simple substring check matches what §5.3.5 asks for.
+"""
+import os
+import re
+import sys
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SKILLS_DIR = os.path.join(ROOT, "skills")
+
+PERMISSION_LINE = re.compile(r"^-\s*permission:\s*(.+)$")
+PHASE_HEADING = re.compile(r"^#+\s*Phase\s+(\d+)\b")
+
+
+def parse_permissions(path):
+    permissions = []
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            match = PERMISSION_LINE.match(line.strip())
+            if match:
+                permissions.append(match.group(1).strip())
+    return permissions
+
+
+def parse_phase_numbers(skill_md_text):
+    numbers = []
+    for line in skill_md_text.splitlines():
+        match = PHASE_HEADING.match(line.strip())
+        if match:
+            numbers.append(int(match.group(1)))
+    return numbers
+
+
+def strip_frontmatter(text):
+    """Return the body of SKILL.md, with the --- frontmatter block removed,
+    so permission citations are checked against the body, not restated in
+    frontmatter."""
+    parts = text.split("---", 2)
+    if text.startswith("---") and len(parts) >= 3:
+        return parts[2]
+    return text
+
+
+def main():
+    if not os.path.isdir(SKILLS_DIR):
+        print("skill-review: no skills/ directory found.")
+        return 0
+
+    violations = []
+    skill_names = sorted(
+        n for n in os.listdir(SKILLS_DIR) if os.path.isdir(os.path.join(SKILLS_DIR, n))
+    )
+
+    for name in skill_names:
+        skill_dir = os.path.join(SKILLS_DIR, name)
+        skill_md_path = os.path.join(skill_dir, "SKILL.md")
+        permissions_path = os.path.join(skill_dir, "permissions.yml")
+
+        if not os.path.isfile(skill_md_path):
+            violations.append(f"skill-review: {name}: missing SKILL.md")
+            continue
+
+        with open(skill_md_path, encoding="utf-8") as f:
+            skill_md_text = f.read()
+        body = strip_frontmatter(skill_md_text)
+
+        if os.path.isfile(permissions_path):
+            for permission in parse_permissions(permissions_path):
+                if permission not in body:
+                    violations.append(
+                        f"skill-review: {name}: permission {permission!r} declared "
+                        f"in permissions.yml but not cited in SKILL.md body"
+                    )
+
+        phase_numbers = sorted(set(parse_phase_numbers(skill_md_text)))
+        if not phase_numbers:
+            violations.append(f"skill-review: {name}: no Phase headings found")
+        else:
+            if phase_numbers[0] != 0:
+                violations.append(f"skill-review: {name}: Phase 0 is missing")
+            expected = list(range(phase_numbers[0], phase_numbers[-1] + 1))
+            if phase_numbers != expected:
+                violations.append(
+                    f"skill-review: {name}: phase numbers {phase_numbers} are not "
+                    f"contiguous (expected {expected})"
+                )
+
+    if violations:
+        for v in violations:
+            print(v)
+        print(f"skill-review: FAIL ({len(violations)} violation(s))")
+        return 1
+
+    print("skill-review: OK — permissions cited, phases contiguous from 0")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

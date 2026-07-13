@@ -1,0 +1,130 @@
+#!/usr/bin/env python3
+"""skill-lint — checks skills/*/SKILL.md and skills/*/permissions.yml
+against the ceilings and forbidden patterns in .ship-check/config.yml.
+
+Stdlib only, no network, no third-party imports. Reads config with a
+hand-rolled flat-YAML parser (key: value / key: <newline> - item) instead
+of PyYAML — see .ship-check/config.yml's header comment for why (D-08).
+
+# ponytail: the config parser only understands flat key:value plus one
+# level of "- item" lists, matching exactly what .ship-check/config.yml
+# uses. If config.yml ever needs nesting, swap in PyYAML then.
+"""
+import os
+import re
+import sys
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CONFIG_PATH = os.path.join(ROOT, ".ship-check", "config.yml")
+SKILLS_DIR = os.path.join(ROOT, "skills")
+
+
+def parse_flat_config(path):
+    """Parse `key: value` and `key:\\n  - item` pairs. No nesting."""
+    config = {}
+    current_list_key = None
+    with open(path, encoding="utf-8") as f:
+        for raw_line in f:
+            line = raw_line.rstrip("\n")
+            if not line.strip() or line.strip().startswith("#"):
+                continue
+            list_item = re.match(r"^\s+-\s+(.*)$", raw_line)
+            if list_item and current_list_key:
+                config.setdefault(current_list_key, []).append(list_item.group(1).strip())
+                continue
+            top_level = re.match(r"^(\w[\w.]*):\s*(.*)$", line)
+            if top_level:
+                key, value = top_level.group(1), top_level.group(2).strip()
+                if value:
+                    config[key] = value
+                    current_list_key = None
+                else:
+                    current_list_key = key
+                    config.setdefault(key, [])
+    return config
+
+
+def read_description(skill_md_path):
+    """Extract the `description:` value from the file's frontmatter."""
+    with open(skill_md_path, encoding="utf-8") as f:
+        lines = f.readlines()
+    in_frontmatter = False
+    for line in lines:
+        if line.strip() == "---":
+            if in_frontmatter:
+                break
+            in_frontmatter = True
+            continue
+        if in_frontmatter and line.startswith("description:"):
+            return line[len("description:"):].strip()
+    return ""
+
+
+def scoped_skill_files(skill_dir):
+    for name in ("SKILL.md", "permissions.yml"):
+        path = os.path.join(skill_dir, name)
+        if os.path.isfile(path):
+            yield path
+
+
+def main():
+    config = parse_flat_config(CONFIG_PATH)
+    max_lines = int(config.get("max_lines", 500))
+    max_words = int(config.get("max_description_words", 60))
+    forbidden = config.get("forbidden_regexes", [])
+    lint_scope = config.get("lint_scope", ["skills"])
+
+    if "skills" not in lint_scope:
+        print("skill-lint: lint_scope does not include 'skills' — nothing to check.")
+        return 0
+
+    if not os.path.isdir(SKILLS_DIR):
+        print("skill-lint: no skills/ directory found.")
+        return 0
+
+    violations = []
+    skill_names = sorted(
+        n for n in os.listdir(SKILLS_DIR) if os.path.isdir(os.path.join(SKILLS_DIR, n))
+    )
+
+    for name in skill_names:
+        skill_dir = os.path.join(SKILLS_DIR, name)
+        skill_md = os.path.join(skill_dir, "SKILL.md")
+
+        if os.path.isfile(skill_md):
+            with open(skill_md, encoding="utf-8") as f:
+                line_count = sum(1 for _ in f)
+            if line_count > max_lines:
+                violations.append(
+                    f"skill-lint: {name}/SKILL.md: {line_count} lines > {max_lines} ceiling"
+                )
+
+            description = read_description(skill_md)
+            word_count = len(description.split()) if description else 0
+            if word_count > max_words:
+                violations.append(
+                    f"skill-lint: {name}/SKILL.md: description {word_count} words > {max_words} ceiling"
+                )
+
+        for path in scoped_skill_files(skill_dir):
+            with open(path, encoding="utf-8") as f:
+                for lineno, text in enumerate(f, start=1):
+                    for pattern in forbidden:
+                        if re.search(pattern, text):
+                            rel = os.path.relpath(path, ROOT)
+                            violations.append(
+                                f"skill-lint: {rel}:{lineno}: matches forbidden pattern {pattern!r}"
+                            )
+
+    if violations:
+        for v in violations:
+            print(v)
+        print(f"skill-lint: FAIL ({len(violations)} violation(s))")
+        return 1
+
+    print("skill-lint: OK — all skills within ceilings, no forbidden patterns found")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
