@@ -1,0 +1,5 @@
+# permissions.yml — flat list, one permission per entry. Every entry here
+# must be cited (why + where) in the SKILL.md body of this same skill.
+- permission: crm.objects.deals.read
+- permission: crm.pipelines.read
+- permission: crm.objects.owners.read
