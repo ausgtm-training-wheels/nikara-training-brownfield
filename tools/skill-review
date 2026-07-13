@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """skill-review — checks each skill under skills/*:
 
-1. Every permission in permissions.yml is cited (by literal name) *with an
-   explanation* — a fenced code block, or a prose/list line with at least
-   5 other words — in the skill's SKILL.md body (SETUP §5.3.5: why + where,
-   not a bare declaration).
+1. Every permission declared in permissions.yml OR SKILL.md frontmatter
+   (SETUP §5.3.5) is cited (by literal name) *with an explanation* — a
+   fenced code block, or a prose/list line with at least 5 other words —
+   in the skill's SKILL.md body (why + where, not a bare declaration).
 2. Phase headings (## Phase N) are numbered contiguously from 0.
 3. Phase 0 is present.
 
@@ -23,6 +23,8 @@ SKILLS_DIR = os.path.join(ROOT, "skills")
 
 PERMISSION_LINE = re.compile(r"^-\s*permission:\s*(.+)$")
 PHASE_HEADING = re.compile(r"^#+\s*Phase\s+(\d+)\b")
+FRONTMATTER_PERM_KEY = re.compile(r"^permissions:\s*$")
+FRONTMATTER_PERM_ITEM = re.compile(r"^\s*-\s*(?:permission:\s*)?(.+)$")
 
 
 def parse_permissions(path):
@@ -32,6 +34,28 @@ def parse_permissions(path):
             match = PERMISSION_LINE.match(line.strip())
             if match:
                 permissions.append(match.group(1).strip())
+    return permissions
+
+
+def parse_frontmatter_permissions(skill_md_text):
+    """Parse a `permissions:` list declared in SKILL.md frontmatter — the
+    other declaration location SETUP §5.3.5 names alongside permissions.yml
+    (WR-02)."""
+    frontmatter = get_frontmatter(skill_md_text)
+    permissions = []
+    collecting = False
+    for line in frontmatter.splitlines():
+        if FRONTMATTER_PERM_KEY.match(line.strip()):
+            collecting = True
+            continue
+        if collecting:
+            item = FRONTMATTER_PERM_ITEM.match(line)
+            if item:
+                permissions.append(item.group(1).strip())
+                continue
+            if line.strip() == "":
+                continue
+            collecting = False
     return permissions
 
 
@@ -61,6 +85,15 @@ def cited_with_explanation(body, permission):
         if len(other_words) >= 5:
             return True
     return False
+
+
+def get_frontmatter(text):
+    """Return the --- delimited frontmatter block's contents, or "" if
+    there isn't one."""
+    parts = text.split("---", 2)
+    if text.startswith("---") and len(parts) >= 3:
+        return parts[1]
+    return ""
 
 
 def strip_frontmatter(text):
@@ -96,19 +129,25 @@ def main():
             skill_md_text = f.read()
         body = strip_frontmatter(skill_md_text)
 
+        declared = []
         if os.path.isfile(permissions_path):
-            for permission in parse_permissions(permissions_path):
-                if permission not in body:
-                    violations.append(
-                        f"skill-review: {name}: permission {permission!r} declared "
-                        f"in permissions.yml but not cited in SKILL.md body"
-                    )
-                elif not cited_with_explanation(body, permission):
-                    violations.append(
-                        f"skill-review: {name}: permission {permission!r} cited but "
-                        f"not explained — needs a why/where sentence or code fence, "
-                        f"not a bare mention (SETUP §5.3.5)"
-                    )
+            declared += [(p, "permissions.yml") for p in parse_permissions(permissions_path)]
+        declared += [
+            (p, "SKILL.md frontmatter") for p in parse_frontmatter_permissions(skill_md_text)
+        ]
+
+        for permission, source in declared:
+            if permission not in body:
+                violations.append(
+                    f"skill-review: {name}: permission {permission!r} declared "
+                    f"in {source} but not cited in SKILL.md body"
+                )
+            elif not cited_with_explanation(body, permission):
+                violations.append(
+                    f"skill-review: {name}: permission {permission!r} cited but "
+                    f"not explained — needs a why/where sentence or code fence, "
+                    f"not a bare mention (SETUP §5.3.5)"
+                )
 
         raw_numbers = parse_phase_numbers(skill_md_text)
         seen = set()
