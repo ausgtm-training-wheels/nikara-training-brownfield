@@ -1,0 +1,26 @@
+# .ship-check/config.yml — single source of truth for tools/skill-lint and
+# tools/skill-review (and, later, .claude/commands/ship-check.md's scrub
+# check). Flat `key: value` plus simple `- ` lists only — no nesting, no
+# anchors, no multi-line scalars. This lets the tools parse it with plain
+# string splitting instead of a YAML dependency.
+
+approved_org: nikara-101-training
+max_lines: 500
+max_description_words: 60
+
+# Lint scope: directories the tools check. Deliberately excludes hubspot/ —
+# hubspot/setup.md carries a deliberate planted portal ID (see
+# hubspot/setup.md and CONTRIBUTING.md H5) that must not fail main's own
+# gates. /ship-check's scrub check still catches it on any PR that touches
+# hubspot/.
+lint_scope:
+  - skills
+
+# Every hit in a scoped file is a finding. Patterns match SETUP.md's scrub
+# table.
+forbidden_regexes:
+  - \b\d{7,8}\b
+  - \bC[0-9A-Z]{8,10}\b
+  - \b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b
+  - /Users/[^/\s]+/
+  - \b(ClearCalcs)\b

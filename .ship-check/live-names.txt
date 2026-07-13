@@ -1,0 +1,3 @@
+# One do-not-ship name per line. Coach-maintained. /ship-check's scrub
+# check flags any line in a diff that matches one of these names verbatim.
+ClearCalcs
