@@ -45,19 +45,34 @@ def parse_flat_config(path):
 
 
 def read_description(skill_md_path):
-    """Extract the `description:` value from the file's frontmatter."""
+    """Extract the `description:` value from the file's frontmatter,
+    including a YAML folded/literal block scalar (`description: >` or `|`
+    followed by indented continuation lines) — CR-01."""
     with open(skill_md_path, encoding="utf-8") as f:
         lines = f.readlines()
     in_frontmatter = False
+    collecting = False
+    parts = []
     for line in lines:
         if line.strip() == "---":
             if in_frontmatter:
                 break
             in_frontmatter = True
             continue
-        if in_frontmatter and line.startswith("description:"):
-            return line[len("description:"):].strip()
-    return ""
+        if not in_frontmatter:
+            continue
+        if line.startswith("description:"):
+            inline = line[len("description:"):].strip()
+            if inline and inline not in (">", "|", ">-", "|-"):
+                return inline
+            collecting = True
+            continue
+        if collecting:
+            if line.strip() == "" or line.startswith((" ", "\t")):
+                parts.append(line.strip())
+                continue
+            break
+    return " ".join(parts)
 
 
 def scoped_skill_files(skill_dir):
