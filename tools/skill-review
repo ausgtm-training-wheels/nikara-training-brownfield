@@ -83,7 +83,15 @@ def main():
                         f"in permissions.yml but not cited in SKILL.md body"
                     )
 
-        phase_numbers = sorted(set(parse_phase_numbers(skill_md_text)))
+        raw_numbers = parse_phase_numbers(skill_md_text)
+        seen = set()
+        dupes = {n for n in raw_numbers if n in seen or seen.add(n)}
+        if dupes:
+            violations.append(
+                f"skill-review: {name}: duplicate phase number(s) {sorted(dupes)}"
+            )
+
+        phase_numbers = sorted(set(raw_numbers))
         if not phase_numbers:
             violations.append(f"skill-review: {name}: no Phase headings found")
         else:
