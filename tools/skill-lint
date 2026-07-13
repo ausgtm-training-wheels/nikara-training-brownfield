@@ -20,11 +20,14 @@ SKILLS_DIR = os.path.join(ROOT, "skills")
 
 
 def parse_flat_config(path):
-    """Parse `key: value` and `key:\\n  - item` pairs. No nesting."""
+    """Parse `key: value` and `key:\\n  - item` pairs. No nesting.
+
+    Any line that matches neither grammar is a parse failure for that line:
+    warn on stderr naming the line rather than silently dropping it (WR-03)."""
     config = {}
     current_list_key = None
     with open(path, encoding="utf-8") as f:
-        for raw_line in f:
+        for lineno, raw_line in enumerate(f, start=1):
             line = raw_line.rstrip("\n")
             if not line.strip() or line.strip().startswith("#"):
                 continue
@@ -41,7 +44,19 @@ def parse_flat_config(path):
                 else:
                     current_list_key = key
                     config.setdefault(key, [])
+                continue
+            print(f"skill-lint: warning: could not parse config.yml line {lineno}: {line!r}", file=sys.stderr)
     return config
+
+
+def config_value(config, key, default):
+    """Look up a required key, warning loudly (not silently) if it fell
+    back to the default because config.yml didn't populate it (WR-03)."""
+    if key not in config:
+        print(f"skill-lint: warning: using default {default!r} for key {key!r} "
+              f"(not found in .ship-check/config.yml)", file=sys.stderr)
+        return default
+    return config[key]
 
 
 def read_description(skill_md_path):
@@ -84,10 +99,10 @@ def scoped_skill_files(skill_dir):
 
 def main():
     config = parse_flat_config(CONFIG_PATH)
-    max_lines = int(config.get("max_lines", 500))
-    max_words = int(config.get("max_description_words", 60))
-    forbidden = config.get("forbidden_regexes", [])
-    lint_scope = config.get("lint_scope", ["skills"])
+    max_lines = int(config_value(config, "max_lines", 500))
+    max_words = int(config_value(config, "max_description_words", 60))
+    forbidden = config_value(config, "forbidden_regexes", [])
+    lint_scope = config_value(config, "lint_scope", ["skills"])
 
     if "skills" not in lint_scope:
         print("skill-lint: lint_scope does not include 'skills' — nothing to check.")
