@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 """skill-review — checks each skill under skills/*:
 
-1. Every permission in permissions.yml is cited (by literal name) in the
-   skill's SKILL.md body.
+1. Every permission in permissions.yml is cited (by literal name) *with an
+   explanation* — a fenced code block, or a prose/list line with at least
+   5 other words — in the skill's SKILL.md body (SETUP §5.3.5: why + where,
+   not a bare declaration).
 2. Phase headings (## Phase N) are numbered contiguously from 0.
 3. Phase 0 is present.
 
 Stdlib only, no network, no third-party imports.
 
-# ponytail: "cited" means the permission string appears verbatim in the
-# SKILL.md body. A future version could require a nearby explanation
-# sentence; today's simple substring check matches what §5.3.5 asks for.
+# ponytail: "explained" is a word-count heuristic (fenced block, or a line
+# with >=5 other words), not real NLP. It's enough to reject a bare
+# "Permissions used: X, Y" list without over-engineering a prose parser.
 """
 import os
 import re
@@ -40,6 +42,25 @@ def parse_phase_numbers(skill_md_text):
         if match:
             numbers.append(int(match.group(1)))
     return numbers
+
+
+def cited_with_explanation(body, permission):
+    """True if `permission` appears inside a fenced code block, or on a
+    prose/list line alongside >=5 other words — not just a bare
+    declaration line like "Permissions used: X, Y" (WR-01)."""
+    in_fence = False
+    for line in body.splitlines():
+        if line.strip().startswith("```"):
+            in_fence = not in_fence
+            continue
+        if permission not in line:
+            continue
+        if in_fence:
+            return True
+        other_words = [w for w in line.split() if permission not in w]
+        if len(other_words) >= 5:
+            return True
+    return False
 
 
 def strip_frontmatter(text):
@@ -81,6 +102,12 @@ def main():
                     violations.append(
                         f"skill-review: {name}: permission {permission!r} declared "
                         f"in permissions.yml but not cited in SKILL.md body"
+                    )
+                elif not cited_with_explanation(body, permission):
+                    violations.append(
+                        f"skill-review: {name}: permission {permission!r} cited but "
+                        f"not explained — needs a why/where sentence or code fence, "
+                        f"not a bare mention (SETUP §5.3.5)"
                     )
 
         raw_numbers = parse_phase_numbers(skill_md_text)
