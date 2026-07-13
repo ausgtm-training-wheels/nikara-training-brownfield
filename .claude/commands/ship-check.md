@@ -152,3 +152,14 @@ Commit: <short SHA>
 - A check produced findings needing judgement (e.g. a duplicate fact that might be intentional) and nothing else failed → `**Verdict: NEEDS HUMAN DECISION** — the following need coach input:` + the ambiguous findings.
 
 Map the verdict to an exit code — CLEAN: 0, BLOCKERS OPEN: 1, NEEDS HUMAN DECISION: 2 — then, as the final tool call, run `bash -c 'exit N'` and print `Exit: N (<VERDICT>)` as the report's very last line. A CLEAN verdict must never be printed while any check actually failed.
+
+## CHANGELOG
+
+A new check is a new or extended numbered section above, never a rewrite (§5.5, SHIP-05).
+
+- **v1 (baseline):** checks 1–6 as specified in this file — blocker ledger, diff against main, one boss, scrub, least privilege, gates.
+- **Week 3:** enriches §5 (least privilege) with a full input/output/side-effect table per permission — not a new section.
+- **Week 4:** extends §4 (scrub)'s regex list in ship-check.data.md with any literal the plugin promotes to a shared invariant.
+- **Week 5:** enriches §3 (one boss) into "one boss + convergence" — does every phase's stated output feed the next phase's stated input?
+- **Week 6:** Nikara designs and adds one new check herself.
+- **Week 7:** adds the ownership-map check at spec level (used with `/workflows`, not on every PR).
