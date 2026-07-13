@@ -12,14 +12,6 @@ owns it, what happened recently, and what risks might stall it.
 This skill never writes to HubSpot. Every permission it declares is a read
 scope (see `permissions.yml` and the citations below).
 
-## Phase 0: Read the brief
-
-Read the user's request in full before touching HubSpot. Identify the deal
-they mean (by name or ID) and what they actually want to know — a full
-brief, or one specific fact (e.g. "who owns this?"). Do not call any tool
-until the request is understood. This phase is never skipped, even for a
-one-line request.
-
 ## Phase 1: Look up the deal record
 
 Uses `crm.objects.deals.read` — this permission is needed here because
@@ -62,6 +54,17 @@ Combine Phases 1-3 into a short brief:
 
 Present the brief as plain text. Do not fabricate a risk if none is evident
 from the data — say "no obvious risk from CRM data" instead.
+
+## Phase 8: Surface renewal risk signals
+
+Uses `crm.objects.deals.read` — this permission is needed here because
+Phase 8 compares the deal's close date against today to flag deals that are
+overdue for a decision, surfacing renewal or stall risk beyond what
+Phase 4's brief already covers.
+
+For deals past their close date with no stage change in 30+ days, append a
+one-line flag: "overdue — no stage movement in over 30 days." This flag
+supplements the biggest-risk line from Phase 4; it does not replace it.
 
 ## What this skill does not do
 
