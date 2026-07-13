@@ -18,7 +18,14 @@ Run `gh pr view --json number,title,url,body,comments,reviews,headRefName`. If t
 
 then run `bash -c 'exit 3'` and print `Exit: 3 (TOOL FAILURE)` as the last line. Do not run any of the six checks.
 
-Otherwise capture the PR JSON, `git rev-parse --short HEAD`, the branch name, and `Ran at: <UTC timestamp now>`. The scrub-regex and blocker-keyword tables live in `.claude/commands/ship-check.data.md` — read it if present rather than inlining the tables here.
+Otherwise capture the PR JSON, `git rev-parse --short HEAD`, the branch name, and `Ran at: <UTC timestamp now>`. The scrub-regex and blocker-keyword tables live in `.claude/commands/ship-check.data.md` — read it now. If the file cannot be found (missing or renamed), stop immediately with the same TOOL FAILURE path — do not proceed from memory or improvise the tables:
+
+```
+# /ship-check report — TOOL FAILURE
+ship-check.data.md not found — cannot resolve the blocker-keyword table (check 1) or the scrub-regex table (check 4) without it.
+```
+
+then run `bash -c 'exit 3'` and print `Exit: 3 (TOOL FAILURE)` as the last line. Do not run any of the six checks.
 
 ## Run the six checks, in order
 
