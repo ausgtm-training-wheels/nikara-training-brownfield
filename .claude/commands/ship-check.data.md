@@ -8,11 +8,11 @@ Read by the `/ship-check` command (checks 1 and 4). Kept in a sibling file so `s
 
 | Pattern | Regex | Example match |
 |---------|-------|---------------|
-| Personal GitHub org/user (any but the approved org) | `github\.com/(?!<APPROVED_ORG>)[a-zA-Z0-9-]+/` | `github.com/robertli/wp-finetune` |
+| Personal GitHub org/user (any but the approved org) | `github\.com/(?!<APPROVED_ORG>)[a-zA-Z0-9-]+/` | `github.com/someuser/example-repo` |
 | HubSpot portal ID (in `hubspot/` or `skills/*/`) | `\b\d{7,8}\b` | `21445566` |
 | Slack channel ID | `\bC[0-9A-Z]{8,10}\b` | `C08ABCDE12` |
 | UUID (e.g. Notion page IDs) | `\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b` | `f47ac10b-58cc-4372-a567-0e02b2c3d479` |
-| Local absolute path | `/Users/[^/\s]+/` or `C:\\Users\\` | `/Users/nikara/Desktop/...` |
+| Local absolute path | `/Users/[^/\s]+/` or `C:\\Users\\` | `/Users/example/Desktop/...` |
 | Stale brand names | `\b(ClearCalcs)\b` | `ClearCalcs` |
 | Live customer/deal names | every line in `.ship-check/live-names.txt` (repo-owned do-not-ship list) | any line in that file |
 
