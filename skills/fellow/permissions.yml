@@ -1,0 +1,4 @@
+# permissions.yml — flat list, one permission per entry. Every entry here
+# must be cited (why + where) in the SKILL.md body of this same skill.
+- permission: mcp.hubspot.read
+- permission: cli.hubspot-cli.exec
