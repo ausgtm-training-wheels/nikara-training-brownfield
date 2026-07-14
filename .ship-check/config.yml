@@ -4,7 +4,7 @@
 # anchors, no multi-line scalars. This lets the tools parse it with plain
 # string splitting instead of a YAML dependency.
 
-approved_org: nikara-101-training
+approved_org: ausgtm-training-wheels
 max_lines: 500
 max_description_words: 60
 
