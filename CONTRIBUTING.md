@@ -35,3 +35,5 @@ need day to day; it does not restate the reasoning.
    an open blocker (H1).
 3. If you touch a skill's `permissions.yml`, cite every permission in the
    matching `SKILL.md` body (H4).
+
+Work through the course one week at a time — each week's exercise assumes the earlier weeks are done.
