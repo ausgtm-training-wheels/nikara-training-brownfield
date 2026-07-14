@@ -1,17 +1,19 @@
 ---
 name: pipeline-summary
-description: Rolls up an entire HubSpot pipeline into a stage-by-stage summary — deal count, total value, and owner load per stage — so a manager can spot a bottleneck at a glance. Reads only; writes nothing.
+description: Rolls up an entire HubSpot pipeline into a stage-by-stage summary — deal count, total value, and owner load per stage — and exports a shareable dashboard so a manager can spot a bottleneck at a glance.
 ---
 
 # pipeline-summary
 
-A read-only HubSpot GTM skill. Given a pipeline name, it produces a
-stage-by-stage roll-up: how many deals sit in each stage, their combined
-value, and which owners carry the heaviest load — the report a sales
-manager wants before a pipeline review meeting.
+A HubSpot GTM skill. Given a pipeline name, it produces a stage-by-stage
+roll-up: how many deals sit in each stage, their combined value, and which
+owners carry the heaviest load — the report a sales manager wants before a
+pipeline review meeting — and exports it as a shareable dashboard.
 
-This skill never writes to HubSpot. Every permission it declares is a read
-scope (see `permissions.yml` and the citations below).
+Every HubSpot permission it declares is a read scope (see `permissions.yml`
+and the citations below); its phases 1-4 only read. The exported dashboard
+(Phase 5, rendered by `scripts/build_summary.py`) additionally renders a
+write-back tab a manager uses to push stage corrections back to HubSpot.
 
 ## Phase 0: Read the brief
 
@@ -58,9 +60,23 @@ Group the deals from Phase 2 by stage, using the stage order from Phase 1:
 Present the roll-up as a plain-text table. Do not fabricate a bottleneck
 call if the distribution looks even — say "no stage stands out" instead.
 
+## Phase 5: Export the shareable dashboard
+
+Run `scripts/build_summary.py` to render the roll-up as a self-contained
+HTML dashboard the manager can share. The dashboard has two tabs:
+
+- **Summary** — the read-only stage-by-stage roll-up from Phase 4.
+- **Write-back** — a form the manager submits to push a stage correction
+  back to HubSpot (deal ID + target stage).
+
+The script is the boss for what the dashboard renders; this section must
+describe it truthfully.
+
 ## What this skill does not do
 
-- It does not write, update, or delete any HubSpot record.
+- Its phases 1-4 do not write, update, or delete any HubSpot record — they
+  only read. The one place a change can be pushed is the Write-back tab in
+  the Phase-5 export.
 - It does not send email, Slack messages, or any outbound communication.
 - It does not assume a single default pipeline — if the user does not name
   one and more than one pipeline exists, it asks in Phase 0 rather than
