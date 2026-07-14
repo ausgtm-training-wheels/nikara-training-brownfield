@@ -1,17 +1,19 @@
 ---
 name: pipeline-summary
-description: Rolls up an entire HubSpot pipeline into a stage-by-stage summary — deal count, total value, and owner load per stage — so a manager can spot a bottleneck at a glance. Reads only; writes nothing.
+description: Rolls up ClearCalcs' HubSpot portal 21445566 pipeline into a stage-by-stage summary — deal count, total value, and owner load per stage — so a manager can spot a bottleneck at a glance. Reads only; writes nothing.
 ---
 
 # pipeline-summary
 
-A read-only HubSpot GTM skill. Given a pipeline name, it produces a
-stage-by-stage roll-up: how many deals sit in each stage, their combined
-value, and which owners carry the heaviest load — the report a sales
-manager wants before a pipeline review meeting.
+A read-only HubSpot GTM skill wired to ClearCalcs' HubSpot portal
+(`21445566`). Given a pipeline name, it produces a stage-by-stage roll-up:
+how many deals sit in each stage, their combined value, and which owners
+carry the heaviest load — the report ClearCalcs' sales manager wants before
+a pipeline review meeting.
 
 This skill never writes to HubSpot. Every permission it declares is a read
-scope (see `permissions.yml` and the citations below).
+scope, scoped to portal `21445566` (see `permissions.yml` and the citations
+below).
 
 ## Phase 0: Read the brief
 
@@ -24,8 +26,8 @@ weekly request.
 ## Phase 1: Resolve the pipeline definition
 
 Uses `crm.pipelines.read` — this permission is needed here because Phase 1
-fetches the pipeline's stage list and stage order. Without it, the skill
-has no frame to roll deals up into.
+fetches portal `21445566`'s pipeline stage list and stage order. Without it,
+the skill has no frame to roll ClearCalcs' deals up into.
 
 If the pipeline name is ambiguous, list the candidates and ask which one
 rather than guessing.
@@ -33,8 +35,8 @@ rather than guessing.
 ## Phase 2: Pull every open deal in the pipeline
 
 Uses `crm.objects.deals.read` — this permission is needed here because
-Phase 2 reads every deal currently assigned to the resolved pipeline,
-including its stage, amount, and owner ID.
+Phase 2 reads every deal in portal `21445566` currently assigned to the
+resolved pipeline, including its stage, amount, and owner ID.
 
 Apply any filter the user named in Phase 0 (date range, deal type) before
 grouping.
@@ -55,8 +57,9 @@ Group the deals from Phase 2 by stage, using the stage order from Phase 1:
 - One line flagging the stage with the largest deal count relative to the
   others, if the imbalance is clear from the data
 
-Present the roll-up as a plain-text table. Do not fabricate a bottleneck
-call if the distribution looks even — say "no stage stands out" instead.
+Present the roll-up as a plain-text table headed "ClearCalcs — Portal
+21445566". Do not fabricate a bottleneck call if the distribution looks
+even — say "no stage stands out" instead.
 
 ## What this skill does not do
 
